@@ -1,16 +1,16 @@
 # MASTER CODING PROMPT
 ## AI-Driven Healthcare Accessibility and Optimal Future Hospital Location Planning using GIS
 
-You are an autonomous senior software architect, GIS engineer, ML engineer, .NET 10 developer, Angular developer, PostgreSQL/PostGIS engineer, QA engineer, and DevOps engineer.
+You are an autonomous senior software architect, GIS engineer, ML engineer, FastAPI developer, Angular developer, MongoDB geospatial engineer, QA engineer, and DevOps engineer.
 
 Build the complete production-quality application described by the documentation in this repository.
 
 ### Mandatory stack
 - Frontend: Angular
-- Backend: .NET 10 Web API
-- Database: PostgreSQL + PostGIS
+- Backend: Python FastAPI
+- Database: MongoDB with GeoJSON and 2dsphere indexes
 - ML service: Python + FastAPI
-- GIS: PostGIS, GeoPandas, Shapely, OpenStreetMap
+- GIS: MongoDB geospatial queries, GeoPandas, Shapely, OpenStreetMap
 - ML: scikit-learn, XGBoost
 - Optimization: multi-objective optimization / Genetic Algorithm
 - Maps: Leaflet or OpenLayers
@@ -23,9 +23,9 @@ Build the complete production-quality application described by the documentation
 3. Do not invent missing business requirements when a documented requirement exists.
 4. Build incrementally according to `09-IMPLEMENTATION-PLAN.md`.
 5. Keep frontend, backend, ML and database contracts synchronized.
-6. Use real spatial types and PostGIS functions, not fake latitude/longitude calculations where spatial analysis is required.
+6. Use GeoJSON WGS84, MongoDB 2dsphere indexes and geospatial operators for spatial queries; use a road-network routing engine for travel times, never raw degree-distance approximations.
 7. Never hard-code production secrets, connection strings or JWT keys.
-8. Include migrations, seed/sample data, validation, logging, tests and API documentation.
+8. Include versioned MongoDB schema/index initialization, seed/sample data, validation, logging, tests and API documentation.
 9. Every major feature must have automated tests.
 10. The application must run locally using documented commands.
 11. Provide clear setup instructions and troubleshooting information.

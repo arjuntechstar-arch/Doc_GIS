@@ -6,12 +6,12 @@
 Angular Web GIS
       |
       v
-.NET 10 Web API
+FastAPI Web API
       |
   +---+-------------------+
   |                       |
   v                       v
-PostgreSQL/PostGIS     Python ML API
+MongoDB + 2dsphere     Python ML API
   |                       |
   |                 ML/Prediction
   |                 Optimization
@@ -40,11 +40,11 @@ Spatial Analysis
 ```text
 src/
   backend/
-    HealthcareGIS.Api/
-    HealthcareGIS.Application/
-    HealthcareGIS.Domain/
-    HealthcareGIS.Infrastructure/
-    HealthcareGIS.Contracts/
+    healthcare_gis/
+      api/
+      services/
+      models/
+      database.py
   ml/
     healthcare_ml/
       api/
@@ -74,14 +74,14 @@ src/
 ```
 
 ## 2.4 Architectural principles
-- Clean Architecture for .NET.
+- Modular FastAPI architecture with explicit service and persistence boundaries.
 - Dependency inversion.
 - DTOs at API boundaries.
 - Repository/unit-of-work only where useful.
 - Domain logic separated from infrastructure.
 - Python service owns ML model execution.
-- .NET service owns business workflow and authorization.
-- PostGIS owns authoritative spatial persistence and spatial queries.
+- FastAPI service owns business workflow and authorization.
+- MongoDB stores authoritative WGS84 GeoJSON and executes indexed geospatial queries; road travel times require a routing graph.
 - Frontend never directly accesses the database.
 
 ## 2.5 Long-running jobs
@@ -93,7 +93,7 @@ QUEUED → RUNNING → COMPLETED / FAILED / CANCELLED.
 ## 2.6 Data flow
 1. User uploads or imports data.
 2. Validation service checks schema and geometry.
-3. Data is stored in PostGIS.
+3. Data is stored in MongoDB.
 4. Spatial feature engineering runs.
 5. ML service trains or predicts.
 6. Optimization engine generates recommendations.

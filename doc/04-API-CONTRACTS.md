@@ -91,4 +91,4 @@ POST `/jobs/{id}/cancel`
 - Consistent validation errors.
 - UTC timestamps.
 - GeoJSON for spatial result endpoints.
-- Swagger/OpenAPI enabled.
+- FastAPI OpenAPI/Swagger enabled.

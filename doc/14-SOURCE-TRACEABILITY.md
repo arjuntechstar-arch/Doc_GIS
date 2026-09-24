@@ -30,7 +30,7 @@ Do not invent URLs or licenses. Record them when actually selected.
 ## Decision log
 Document:
 - why XGBoost was selected;
-- why PostGIS is used;
+- why MongoDB GeoJSON and 2dsphere are used, and their limits for road routing and polygon operations;
 - why Genetic Algorithm is used;
 - assumptions;
 - limitations.

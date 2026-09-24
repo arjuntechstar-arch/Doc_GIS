@@ -5,8 +5,8 @@ A GIS + AI decision-support platform that evaluates current healthcare accessibi
 
 ## Key technologies
 - Angular
-- .NET 10
-- PostgreSQL/PostGIS
+- FastAPI
+- MongoDB GeoJSON + 2dsphere
 - Python/FastAPI
 - XGBoost
 - scikit-learn
@@ -39,8 +39,8 @@ GIS Dashboard
 The coding agent must provide exact commands after implementation.
 
 Expected components:
-1. PostgreSQL + PostGIS
-2. .NET API
+1. MongoDB
+2. FastAPI backend
 3. Python ML API
 4. Angular frontend
 
@@ -63,7 +63,7 @@ The application is a decision-support system. A recommended location is an algor
 
 ## Expected final deliverables
 - Complete source code
-- Database migrations
+- Versioned MongoDB schema/index initialization
 - Demo dataset
 - ML models/training scripts
 - API documentation

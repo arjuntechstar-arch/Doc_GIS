@@ -1,21 +1,19 @@
 # 08 BACKEND
 
-## 8.1 .NET 10
-Use ASP.NET Core Web API.
+## 8.1 FastAPI
+Use Python FastAPI with Pydantic request/response models.
 
-Layers:
-- API
-- Application
-- Domain
-- Infrastructure
-- Contracts
+Modules:
+- API routes
+- services and domain rules
+- persistence and geospatial queries
+- Pydantic contracts
 
 ## 8.2 Patterns
 - CQRS-style handlers where useful
-- FluentValidation or equivalent
-- EF Core
-- PostGIS spatial types
-- dependency injection
+- Pydantic validation
+- PyMongo and MongoDB GeoJSON
+- FastAPI dependency injection
 - centralized exception handling
 - ProblemDetails
 
@@ -31,13 +29,13 @@ Layers:
 - AuditService
 
 ## 8.4 ML integration
-The .NET API calls Python FastAPI for:
+The FastAPI backend calls a separate Python ML service for:
 - train
 - predict
 - explain
 - optimize
 
-Use typed HTTP clients.
+Use a configured async HTTP client.
 Implement:
 - timeout
 - retry for safe transient calls
@@ -47,7 +45,7 @@ Implement:
 ## 8.5 Background processing
 Long-running analysis should not block HTTP requests.
 
-Implement a job abstraction first. A local database-backed job queue is acceptable for the initial version. Keep the interface replaceable by Hangfire/Quartz/Azure Service Bus later.
+Implement a job abstraction first. A MongoDB-backed job queue is acceptable for the initial version. Keep the interface replaceable by Hangfire/Quartz/Azure Service Bus later.
 
 ## 8.6 Spatial response
 Return GeoJSON from dedicated GIS endpoints.

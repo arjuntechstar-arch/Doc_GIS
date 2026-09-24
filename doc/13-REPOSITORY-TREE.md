@@ -3,7 +3,7 @@
 ```text
 healthcare-gis-ai/
 │
-├── docs/
+├── doc/
 │   ├── 00-MASTER-CODING-PROMPT.md
 │   ├── 01-REQUIREMENTS.md
 │   ├── 02-ARCHITECTURE.md
@@ -23,11 +23,8 @@ healthcare-gis-ai/
 │
 ├── src/
 │   ├── backend/
-│   │   ├── HealthcareGIS.Api/
-│   │   ├── HealthcareGIS.Application/
-│   │   ├── HealthcareGIS.Domain/
-│   │   ├── HealthcareGIS.Infrastructure/
-│   │   └── HealthcareGIS.Contracts/
+│   │   ├── healthcare_gis/
+│   │   └── requirements.txt
 │   │
 │   ├── ml/
 │   │   ├── healthcare_ml/
@@ -50,7 +47,7 @@ healthcare-gis-ai/
 ├── scripts/
 ├── deployment/
 ├── .env.example
-├── docker-compose.yml
+├── deployment/compose.yaml
 └── README.md
 ```
 

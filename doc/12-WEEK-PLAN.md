@@ -4,10 +4,10 @@
 Requirements, architecture, repository and development environment.
 
 ## Week 2
-PostgreSQL/PostGIS, schema, migrations and seed data.
+MongoDB, GeoJSON schema validators, indexes and seed data.
 
 ## Week 3
-.NET API foundation, authentication, hospital/population modules.
+FastAPI foundation, authentication, hospital/population modules.
 
 ## Week 4
 GIS map, GeoJSON endpoints, spatial queries.

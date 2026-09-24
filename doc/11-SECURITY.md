@@ -37,7 +37,7 @@ Do not execute uploaded files.
 - rate limiting
 - CORS allowlist
 - input validation
-- parameterized queries
+- operator-safe MongoDB queries and strict input models
 - anti-forgery considerations for browser flows
 - secure password hashing
 

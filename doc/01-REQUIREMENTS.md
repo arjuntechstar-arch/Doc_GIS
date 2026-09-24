@@ -94,8 +94,8 @@ A candidate site may be rejected if it:
 - Secure authentication.
 - Structured logging.
 - Input validation.
-- Transactional database operations.
-- Spatial indexes.
+- Transactional multi-document operations where needed (MongoDB replica set).
+- MongoDB 2dsphere spatial indexes.
 - Async processing for long-running ML/optimization jobs.
 - Responsive GIS UI.
 - Reproducible model training.

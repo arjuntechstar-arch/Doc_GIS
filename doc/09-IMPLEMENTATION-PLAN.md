@@ -16,20 +16,20 @@ Acceptance:
 - Python environment starts
 
 ## Phase 1 - Database
-- PostgreSQL/PostGIS
-- EF Core
-- entities
-- migrations
-- spatial indexes
+- MongoDB GeoJSON
+- versioned collection validators
+- domain documents
+- schema/index initializer
+- 2dsphere indexes
 - demo seed
 
 Acceptance:
 - database initializes
-- migrations succeed
+- schema/index initializer succeeds and is repeatable
 - demo records visible
 
 ## Phase 2 - Backend foundation
-- API
+- FastAPI API
 - authentication
 - RBAC
 - Swagger

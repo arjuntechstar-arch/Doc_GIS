@@ -1,158 +1,26 @@
-# 03 DATABASE
+# 03 DATABASE — MongoDB
 
-## 3.1 Database
-PostgreSQL with PostGIS extension.
+## Storage and schema
+MongoDB stores WGS84 GeoJSON documents. Local defaults are `mongodb://localhost:27017/` and database `dog_gis` (overridable by environment variables). `src/backend/healthcare_gis/database.py` is the authoritative versioned collection validator and index initializer. Initialize and seed using `python -m healthcare_gis.initialize`; operations are idempotent. The `schema_migrations` collection records the version. Add explicit upgrade steps for later versions; never silently downgrade. MongoDB `_id` is an ObjectId; API contracts serialize IDs as strings. References are ObjectIds, validated by service code.
 
-## 3.2 Core tables
+## Collections
+- `users`: username, email, password_hash, role, is_active, created_at, updated_at.
+- `hospitals`: external_id, name, hospital_type, bed_capacity, emergency_available, specialty_count, location (GeoJSON Point), status, created_at, updated_at. Longitude/latitude are `location.coordinates` in that order.
+- `population_areas`: area_code, name, population, population_density, age_0_14, age_15_59, age_60_plus, geometry (GeoJSON MultiPolygon), year.
+- `roads`: external_id, road_type, speed_kmh, length_km, geometry (GeoJSON LineString).
+- `healthcare_demand`: area_id, period, demand_value, source, created_at.
+- `accessibility_results`: area_id, nearest_hospital_id, distance_km, travel_time_minutes, capacity_score, emergency_score, population_coverage, accessibility_index, classification, analysis_run_id.
+- `demand_predictions`: area_id, prediction_period, predicted_demand, lower_bound, upper_bound, model_version, run_id.
+- `candidate_sites`: name, location (Point), population_score, demand_score, road_access_score, land_suitability_score, cost_score, feasibility_status, generated_run_id.
+- `optimization_runs`: number_of_sites, objective_configuration, status, started_at, completed_at, model_version, error_message.
+- `recommendations`: optimization_run_id, candidate_site_id, rank, total_score, estimated_population_served, estimated_avg_travel_time, accessibility_improvement, explanation.
+- `analysis_runs`: analysis_type, parameters, status, created_by, created_at, completed_at.
+- `audit_logs`: user_id, action, entity_type, entity_id, metadata, created_at.
 
-### users
-- id UUID PK
-- username
-- email
-- password_hash
-- role
-- is_active
-- created_at
-- updated_at
+## Geospatial operations
+Create `2dsphere` indexes on hospitals.location, population_areas.geometry, roads.geometry, and candidate_sites.location. Use `$geoNear`, `$near`, `$geoWithin`, `$geoIntersects` and GeoJSON for spatial relationships. `$geoNear` distances are metres; convert explicitly to km. For area intersection/centroids/unions and routing operations unavailable in MongoDB, use Shapely/GeoPandas in the analysis service; transform coordinates to an appropriate projected CRS before planar measurement. Use a road graph for travel times; straight-line distance is not travel time. Bounding boxes must account for antimeridian crossings.
 
-### hospitals
-- id UUID PK
-- external_id
-- name
-- hospital_type
-- bed_capacity
-- emergency_available
-- specialty_count
-- latitude
-- longitude
-- location geometry(Point, 4326)
-- status
-- created_at
-- updated_at
+MongoDB does not enforce foreign keys. Validate referenced IDs in services, use transactions for multi-document operations where needed (requires replica set), and keep required compound unique indexes. Server validators check required fields and primitive shapes; detailed geometry topology and coordinate bounds need ingestion validation.
 
-### population_areas
-- id UUID PK
-- area_code
-- name
-- population
-- population_density
-- age_0_14
-- age_15_59
-- age_60_plus
-- geometry geometry(MultiPolygon, 4326)
-- year
-
-### roads
-- id UUID PK
-- external_id
-- road_type
-- speed_kmh
-- length_km
-- geometry geometry(LineString, 4326)
-
-### healthcare_demand
-- id UUID PK
-- area_id FK
-- period
-- demand_value
-- source
-- created_at
-
-### accessibility_results
-- id UUID PK
-- area_id FK
-- nearest_hospital_id FK nullable
-- distance_km
-- travel_time_minutes
-- capacity_score
-- emergency_score
-- population_coverage
-- accessibility_index
-- classification
-- analysis_run_id FK
-
-### demand_predictions
-- id UUID PK
-- area_id FK
-- prediction_period
-- predicted_demand
-- lower_bound nullable
-- upper_bound nullable
-- model_version
-- run_id
-
-### candidate_sites
-- id UUID PK
-- name
-- location geometry(Point, 4326)
-- population_score
-- demand_score
-- road_access_score
-- land_suitability_score
-- cost_score
-- feasibility_status
-- generated_run_id
-
-### optimization_runs
-- id UUID PK
-- number_of_sites
-- objective_configuration JSONB
-- status
-- started_at
-- completed_at
-- model_version
-- error_message
-
-### recommendations
-- id UUID PK
-- optimization_run_id FK
-- candidate_site_id FK
-- rank
-- total_score
-- estimated_population_served
-- estimated_avg_travel_time
-- accessibility_improvement
-- explanation JSONB
-
-### analysis_runs
-- id UUID PK
-- analysis_type
-- parameters JSONB
-- status
-- created_by
-- created_at
-- completed_at
-
-### audit_logs
-- id UUID PK
-- user_id
-- action
-- entity_type
-- entity_id
-- metadata JSONB
-- created_at
-
-## 3.3 Spatial indexes
-Create GiST indexes on:
-- hospitals.location
-- population_areas.geometry
-- roads.geometry
-- candidate_sites.location
-
-## 3.4 Required spatial operations
-Use PostGIS for:
-- ST_DWithin
-- ST_Distance
-- ST_Intersects
-- ST_Contains
-- ST_Within
-- ST_Intersection
-- ST_Transform
-- ST_Union
-- ST_Centroid
-
-Do not use raw Euclidean latitude/longitude distance for production spatial calculations.
-
-## 3.5 Migrations
-All schema changes must use EF Core migrations.
-Seed only deterministic demo data.
+## Demo data
+Seed only deterministic, clearly labeled synthetic hospitals, population areas, and roads. Their coordinates and counts do not represent observed healthcare conditions.
