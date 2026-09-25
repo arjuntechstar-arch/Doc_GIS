@@ -1,0 +1,36 @@
+name: Build and integration tests
+on:
+  push:
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    services:
+      mongo:
+        image: mongo:8.0
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      HEALTHCARE_GIS_TEST_MONGO_URI: mongodb://localhost:27017/
+      PYTHONPATH: src/backend:src/ml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Test Python and live MongoDB workflow
+        run: python -m pytest -q tests/backend tests/ml
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm, cache-dependency-path: src/frontend/healthcare-gis-web/package-lock.json}
+      - name: Install and verify Angular
+        working-directory: src/frontend/healthcare-gis-web
+        run: npm ci && npm run build && npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-evaluation
+          path: var/evaluation/workflow.json
+          if-no-files-found: ignore
