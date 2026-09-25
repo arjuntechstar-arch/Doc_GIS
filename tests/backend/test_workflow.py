@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import time
 import json
 from pathlib import Path
@@ -13,7 +14,7 @@ def ml_server(tmp_path,monkeypatch):
     monkeypatch.setenv('ML_SERVICE_URL','http://127.0.0.1:8101')
     env=os.environ|{'MODEL_STORAGE':str(tmp_path),'PYTHONPATH':'src/ml'}
     log=(tmp_path/'ml.log').open('w')
-    process=subprocess.Popen(['.venv/bin/python','-m','uvicorn','healthcare_ml.app:app','--host','127.0.0.1','--port','8101'],env=env,stdout=log,stderr=log)
+    process=subprocess.Popen([sys.executable,'-m','uvicorn','healthcare_ml.app:app','--host','127.0.0.1','--port','8101'],env=env,stdout=log,stderr=log)
     for _ in range(100):
         try:
             if httpx.get('http://127.0.0.1:8101/health',trust_env=False).status_code==200:break
