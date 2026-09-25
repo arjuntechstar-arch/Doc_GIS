@@ -2,11 +2,11 @@ import os
 import pytest
 from pymongo import GEOSPHERE, MongoClient
 from pymongo.errors import WriteError
-from healthcare_gis.database import FIELDS, INDEXES, initialize, seed_demo
+from healthcare_gis.database import FIELDS, V2_FIELDS, INDEXES, initialize, seed_demo
 
 
 def test_all_collections_have_validators_and_spatial_indexes():
-    assert len(FIELDS) == 12
+    assert len(FIELDS) == 12 and len(V2_FIELDS) == 4
     for name, field in [("hospitals", "location"), ("population_areas", "geometry"),
                         ("roads", "geometry"), ("candidate_sites", "location")]:
         assert FIELDS[name][1][field]["properties"]["type"]
@@ -25,9 +25,10 @@ def test_migration_and_seed_on_disposable_mongodb():
         client.drop_database(name)
         initialize(db)
         seed_demo(db)
+        db.schema_migrations.update_one({"_id": "schema"}, {"$set": {"version": 1}})
         initialize(db)
         seed_demo(db)
-        assert db.schema_migrations.find_one({"_id": "schema"})["version"] == 1
+        assert db.schema_migrations.find_one({"_id": "schema"})["version"] == 2
         assert db.hospitals.count_documents({}) == 2
         assert db.population_areas.count_documents({}) == 2
         assert db.roads.count_documents({}) == 1
@@ -35,6 +36,8 @@ def test_migration_and_seed_on_disposable_mongodb():
         assert db.hospitals.find_one({"location": {"$near": {"$geometry": {"type": "Point", "coordinates": [80.27, 13.08]}, "$maxDistance": 20000}}})
         with pytest.raises(WriteError):
             db.hospitals.insert_one({"name": "Invalid: missing required properties"})
+        with pytest.raises(WriteError):
+            db.jobs.insert_one({"kind": "invalid"})
     finally:
         client.drop_database(name)
         client.close()

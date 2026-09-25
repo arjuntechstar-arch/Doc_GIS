@@ -6,7 +6,7 @@ from typing import Any
 from pymongo import ASCENDING, GEOSPHERE, MongoClient
 from pymongo.database import Database
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 FIELDS: dict[str, tuple[list[str], dict[str, Any]]] = {}
 S = {"bsonType": "string"}
 N = {"bsonType": ["int", "long", "double", "decimal"], "minimum": 0}
@@ -30,7 +30,7 @@ collection("hospitals", "name hospital_type bed_capacity emergency_available spe
 collection("population_areas", "area_code name population population_density age_0_14 age_15_59 age_60_plus geometry year",
            area_code=S, name=S, population=N, population_density=N, age_0_14=N, age_15_59=N, age_60_plus=N, geometry=geo("MultiPolygon"), year={"bsonType": "int"})
 collection("roads", "road_type speed_kmh length_km geometry",
-           external_id=S, road_type=S, speed_kmh={"bsonType": ["int", "long", "double", "decimal"], "exclusiveMinimum": 0}, length_km=N, geometry=geo("LineString"))
+           external_id=S, road_type=S, speed_kmh={"bsonType": ["int", "long", "double", "decimal"], "minimum": 0, "exclusiveMinimum": True}, length_km=N, geometry=geo("LineString"))
 collection("healthcare_demand", "area_id period demand_value source created_at", area_id=OID, period=D, demand_value=N, source=S, created_at=D)
 collection("analysis_runs", "analysis_type parameters status created_at", analysis_type=S, parameters=OBJ, status=S, created_by=OID, created_at=D, completed_at=D)
 collection("accessibility_results", "area_id capacity_score emergency_score population_coverage accessibility_index classification analysis_run_id",
@@ -45,6 +45,21 @@ collection("recommendations", "optimization_run_id candidate_site_id rank total_
            optimization_run_id=OID, candidate_site_id=OID, rank={"bsonType": "int", "minimum": 1}, total_score=N, estimated_population_served=N, estimated_avg_travel_time=N, accessibility_improvement={"bsonType": ["int", "long", "double", "decimal"]}, explanation=OBJ)
 collection("audit_logs", "action entity_type metadata created_at", user_id=OID, action=S, entity_type=S, entity_id=OID, metadata=OBJ, created_at=D)
 
+# Added in schema v2 for the application and asynchronous workflow.
+V2_FIELDS = {
+    "boundaries": (["name", "land_use", "geometry"], {
+        "name": S, "land_use": {"enum": ["boundary", "water", "protected_forest", "residential", "commercial", "vacant"]},
+        "geometry": {"bsonType": "object", "required": ["type", "coordinates"], "properties": {
+            "type": {"enum": ["Polygon", "MultiPolygon"]}, "coordinates": {"bsonType": "array"}}}}),
+    "jobs": (["kind", "parameters", "status", "created_by", "created_at"], {
+        "kind": S, "parameters": OBJ, "status": {"enum": ["QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"]},
+        "created_by": OID, "created_at": D, "started_at": D, "lease_until": D, "completed_at": D,
+        "result": OBJ, "error": S}),
+    "models": (["model_version", "algorithm", "metrics", "created_at"], {
+        "model_version": S, "algorithm": S, "metrics": OBJ, "created_at": S}),
+    "refresh_tokens": (["user_id", "expires_at"], {"user_id": OID, "expires_at": D}),
+}
+
 # Each tuple is (index key specification, options). 2dsphere indexes use GeoJSON WGS84.
 INDEXES = {
     "users": [([("username", ASCENDING)], {"unique": True}), ([("email", ASCENDING)], {"unique": True})],
@@ -52,11 +67,15 @@ INDEXES = {
     "population_areas": [([("area_code", ASCENDING), ("year", ASCENDING)], {"unique": True}), ([("geometry", GEOSPHERE)], {})],
     "roads": [([("external_id", ASCENDING)], {"unique": True, "partialFilterExpression": {"external_id": {"$type": "string"}}}), ([("geometry", GEOSPHERE)], {})],
     "candidate_sites": [([("location", GEOSPHERE)], {}), ([("generated_run_id", ASCENDING)], {})],
-    "healthcare_demand": [([("area_id", ASCENDING), ("period", ASCENDING)], {})],
+    "healthcare_demand": [([("area_id", ASCENDING), ("period", ASCENDING), ("source", ASCENDING)], {"unique": True})],
     "accessibility_results": [([("analysis_run_id", ASCENDING), ("area_id", ASCENDING)], {"unique": True})],
     "demand_predictions": [([("run_id", ASCENDING), ("area_id", ASCENDING)], {"unique": True})],
     "recommendations": [([("optimization_run_id", ASCENDING), ("rank", ASCENDING)], {"unique": True}), ([("optimization_run_id", ASCENDING), ("candidate_site_id", ASCENDING)], {"unique": True})],
     "audit_logs": [([("user_id", ASCENDING), ("created_at", ASCENDING)], {})],
+    "boundaries": [([("geometry", GEOSPHERE)], {})],
+    "jobs": [([("status", ASCENDING), ("created_at", ASCENDING)], {})],
+    "models": [([("model_version", ASCENDING)], {"unique": True})],
+    "refresh_tokens": [([("expires_at", ASCENDING)], {"expireAfterSeconds": 0})],
 }
 
 def connect() -> tuple[MongoClient, Database]:
@@ -65,12 +84,12 @@ def connect() -> tuple[MongoClient, Database]:
     return client, client[os.getenv("HEALTHCARE_GIS_MONGO_DB", "dog_gis")]
 
 def initialize(db: Database) -> None:
-    """Idempotent migration to schema v1; never downgrade an unknown schema."""
+    """Idempotently apply schema versions 1 and 2; never downgrade an unknown schema."""
     current = db.schema_migrations.find_one({"_id": "schema"})
     if current and current["version"] > SCHEMA_VERSION:
         raise RuntimeError("Database schema is newer than this application")
     names = set(db.list_collection_names())
-    for name, (required, properties) in FIELDS.items():
+    for name, (required, properties) in {**FIELDS, **V2_FIELDS}.items():
         validator = {"$jsonSchema": {"bsonType": "object", "required": required, "properties": properties}}
         if name not in names:
             db.create_collection(name, validator=validator, validationLevel="strict")

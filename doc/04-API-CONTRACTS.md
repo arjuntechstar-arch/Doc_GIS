@@ -20,12 +20,22 @@ POST `/hospitals/import`
 GET `/population/areas`
 GET `/population/areas/{id}`
 POST `/population/import`
+POST `/roads/import`
+POST `/boundaries/import`
+POST `/demand/import`
+GET `/roads`
+GET `/boundaries`
 
 ## GIS
 GET `/gis/hospitals?bbox=...`
 GET `/gis/population?bbox=...`
 GET `/gis/candidates?bbox=...`
-GET `/gis/accessibility?bbox=...`
+GET `/gis/accessibility?bbox=...&runId=...`
+GET `/gis/roads?bbox=...`
+GET `/gis/boundaries?bbox=...`
+GET `/gis/underserved?bbox=...&runId=...`
+GET `/gis/demand?bbox=...&runId=...`
+GET `/gis/recommendations?bbox=...&runId=...`
 
 ## Accessibility
 POST `/accessibility/analyze`
@@ -51,6 +61,7 @@ POST `/demand/train`
 POST `/demand/predict`
 GET `/demand/models`
 GET `/demand/runs/{id}`
+GET `/demand/predictions?runId=...`
 
 ## Candidate sites
 POST `/candidate-sites/generate`
@@ -79,7 +90,14 @@ Request:
 ## Reports
 GET `/reports/accessibility/{runId}`
 GET `/reports/optimization/{runId}`
-GET `/reports/export/{runId}?format=csv`
+GET `/reports/export/{runId}?format=csv|geojson|pdf`
+GET `/reports/scenarios`
+GET `/dashboard`
+GET `/analysis/history`
+POST `/admin/demo`
+GET/POST `/admin/users`
+PUT `/admin/users/{id}`
+GET `/admin/audit`
 
 ## Jobs
 GET `/jobs/{id}`

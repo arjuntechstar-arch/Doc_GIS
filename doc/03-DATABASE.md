@@ -1,7 +1,7 @@
 # 03 DATABASE — MongoDB
 
 ## Storage and schema
-MongoDB stores WGS84 GeoJSON documents. Local defaults are `mongodb://localhost:27017/` and database `dog_gis` (overridable by environment variables). `src/backend/healthcare_gis/database.py` is the authoritative versioned collection validator and index initializer. Initialize and seed using `python -m healthcare_gis.initialize`; operations are idempotent. The `schema_migrations` collection records the version. Add explicit upgrade steps for later versions; never silently downgrade. MongoDB `_id` is an ObjectId; API contracts serialize IDs as strings. References are ObjectIds, validated by service code.
+MongoDB stores WGS84 GeoJSON documents. Local defaults are `mongodb://localhost:27017/` and database `dog_gis` (overridable by environment variables). `src/backend/healthcare_gis/database.py` is the authoritative versioned collection validator and index initializer. Initialize and seed using `python -m healthcare_gis.initialize`; operations are idempotent. The `schema_migrations` collection records the version (v1 core spatial collections, v2 jobs, models, boundaries, and refresh tokens). Add explicit upgrade steps for later versions; never silently downgrade. MongoDB `_id` is an ObjectId; API contracts serialize IDs as strings. References are ObjectIds, validated by service code.
 
 ## Collections
 - `users`: username, email, password_hash, role, is_active, created_at, updated_at.
@@ -21,6 +21,8 @@ MongoDB stores WGS84 GeoJSON documents. Local defaults are `mongodb://localhost:
 Create `2dsphere` indexes on hospitals.location, population_areas.geometry, roads.geometry, and candidate_sites.location. Use `$geoNear`, `$near`, `$geoWithin`, `$geoIntersects` and GeoJSON for spatial relationships. `$geoNear` distances are metres; convert explicitly to km. For area intersection/centroids/unions and routing operations unavailable in MongoDB, use Shapely/GeoPandas in the analysis service; transform coordinates to an appropriate projected CRS before planar measurement. Use a road graph for travel times; straight-line distance is not travel time. Bounding boxes must account for antimeridian crossings.
 
 MongoDB does not enforce foreign keys. Validate referenced IDs in services, use transactions for multi-document operations where needed (requires replica set), and keep required compound unique indexes. Server validators check required fields and primitive shapes; detailed geometry topology and coordinate bounds need ingestion validation.
+
+Additional collections are `jobs` (persistent queue), `models` (training metadata), `refresh_tokens` (revocable token IDs with TTL), and `boundaries` (study and excluded land-use polygons).
 
 ## Demo data
 Seed only deterministic, clearly labeled synthetic hospitals, population areas, and roads. Their coordinates and counts do not represent observed healthcare conditions.
