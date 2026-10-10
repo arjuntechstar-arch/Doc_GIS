@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from docx import Document
@@ -93,7 +92,7 @@ MODELS = [
     ("Random forest", COMPARISON.get("random_forest", {}).get("test", {})),
     ("XGBoost", COMPARISON.get("xgboost", {}).get("test", {})),
 ]
-DATE = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %B %Y")
+DATE = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%d %B %Y")
 SECTIONS = [
     (
         "Executive Summary",
