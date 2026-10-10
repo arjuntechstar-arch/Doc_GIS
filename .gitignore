@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.tmp
+
+var/
+node_modules/
+dist/
+.angular/
+playwright-report/
+test-results/

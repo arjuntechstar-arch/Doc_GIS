@@ -1,0 +1,27 @@
+import { Component, AfterViewInit, OnDestroy, OnChanges, Input, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import * as L from 'leaflet';
+import { Api } from './api';
+
+@Component({selector:'gis-map',standalone:true,imports:[FormsModule],template:`
+<div class="map-toolbar"><label>Find a place in loaded layers <input [(ngModel)]="search" (keyup.enter)="find()" placeholder="Hospital or district name" /></label><button (click)="find()">Find</button><button (click)="exportMap()">Export visible GeoJSON</button></div>
+<div class="map-layout"><div #canvas class="map-canvas" aria-label="Interactive healthcare map"></div><aside class="map-legend"><h3>Map layers</h3>@for(layer of layers;track layer.key){<label><input type="checkbox" [checked]="enabled.has(layer.key)" (change)="toggle(layer.key)" /> {{layer.label}}</label>}<hr/><h3>Accessibility legend</h3><p>🟧 Critical · HAI below 0.25</p><p>🟨 Poor · 0.25–0.49</p><p>🟦 Moderate · 0.50–0.74</p><p>🟩 Good · 0.75–1.00</p><p>Scores are also available in the results table.</p><small>{{message()}}</small></aside></div>
+`,styles:[`.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;border:1px solid #dce5e6;border-radius:14px;overflow:hidden}.map-canvas{height:540px;background:#e7efed}.map-legend{padding:16px;background:white}.map-legend label{display:block;margin:12px 0;font-size:13px}.map-legend p{font-size:12px}.map-toolbar{display:flex;gap:10px;align-items:end;margin-bottom:12px}.map-toolbar input{display:block;padding:10px;border:1px solid #b7c8cd;border-radius:7px}.map-toolbar button{padding:10px}.map-toolbar label{font-size:12px}@media(max-width:800px){.map-layout{grid-template-columns:1fr}.map-canvas{height:400px}.map-toolbar{flex-wrap:wrap}}`]})
+export class GisMap implements AfterViewInit,OnDestroy,OnChanges {
+  @ViewChild('canvas',{static:true}) canvas!:ElementRef;
+  @Input() runs:Record<string,string>={};
+  api=inject(Api);message=signal('');search='';map?:L.Map;
+  enabled=new Set(['hospitals','population']);groups=new Map<string,L.GeoJSON>();timer:any;generation=0;
+  layers=[{key:'hospitals',label:'Hospitals'},{key:'population',label:'Population density'},{key:'roads',label:'Road network'},{key:'accessibility',label:'Accessibility index'},{key:'underserved',label:'Underserved areas'},{key:'demand',label:'Predicted demand'},{key:'candidates',label:'Candidate sites'},{key:'recommendations',label:'Recommended hospitals'},{key:'boundaries',label:'Boundaries and land use'}];
+  ngAfterViewInit(){this.map=L.map(this.canvas.nativeElement).setView([13.08,80.28],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(this.map);this.map.on('moveend',()=>{clearTimeout(this.timer);this.timer=setTimeout(()=>this.load(),250);});this.map.on('click',(e:L.LeafletMouseEvent)=>this.message.set(`Selected coordinates: ${e.latlng.lng.toFixed(5)}, ${e.latlng.lat.toFixed(5)}`));void this.load();}
+  ngOnChanges(){if(this.map)void this.load();}
+  ngOnDestroy(){clearTimeout(this.timer);this.map?.remove();}
+  toggle(key:string){this.enabled.has(key)?this.enabled.delete(key):this.enabled.add(key);void this.load();}
+  async load(){if(!this.map)return;const current=++this.generation;const b=this.map.getBounds();const bbox=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');for(const g of this.groups.values())g.remove();this.groups.clear();
+    for(const key of this.enabled){try{let query='?bbox='+bbox;const run=this.runs[key];if(run)query+='&runId='+run;const data=await this.api.request('/gis/'+key+query);if(current!==this.generation||!this.map)return;
+      const group=L.geoJSON(data,{style:(f:any)=>{const score=f?.properties?.accessibility_index;const color=score!==undefined?(score<.25?'#bc541f':score<.5?'#dca331':score<.75?'#3676a2':'#267666'):key==='demand'?'#7950a2':key==='population'?'#547fa6':'#687f82';return {color,weight:key==='roads'?2:1,fillOpacity:key==='population'?Math.min(.55,.1+(f?.properties?.population_density||0)/10000):.3};},pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:key==='recommendations'?10:6,color:key==='recommendations'?'#bd4a22':key==='candidates'?'#a18a24':'#057c79',fillOpacity:.9}),onEachFeature:(feature,layer)=>{const el=document.createElement('div');el.textContent=Object.entries(feature.properties||{}).filter(([k])=>!['geometry','location','explanation'].includes(k)).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join('\n');el.style.whiteSpace='pre-wrap';el.style.maxWidth='260px';layer.bindPopup(el);}}).addTo(this.map);this.groups.set(key,group);
+    }catch(e:any){this.message.set(e.message);}}
+  }
+  find(){const term=this.search.toLowerCase();for(const group of this.groups.values()){for(const layer of group.getLayers() as any[]){if(String(layer.feature?.properties?.name||'').toLowerCase().includes(term)&&term){if(layer.getBounds)this.map?.fitBounds(layer.getBounds());else this.map?.setView(layer.getLatLng(),15);layer.openPopup();return;}}}this.message.set('No matching name in the visible layers.');}
+  exportMap(){const features=[...this.groups.values()].flatMap(g=>(g.toGeoJSON() as any).features);const url=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features})],{type:'application/geo+json'}));const a=document.createElement('a');a.href=url;a.download='visible-healthcare-layers.geojson';a.click();URL.revokeObjectURL(url);}
+}

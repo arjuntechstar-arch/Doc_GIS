@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: healthcare_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD}
+    volumes: [mongo_data:/data/db]
+  ml:
+    build: {context: .., dockerfile: deployment/Dockerfile.ml}
+    environment:
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:?Set ML_SERVICE_KEY}
+      MODEL_STORAGE: /models
+    volumes: [models:/models]
+  api:
+    build: {context: .., dockerfile: deployment/Dockerfile.api}
+    environment:
+      HEALTHCARE_GIS_MONGO_URI: mongodb://healthcare_admin:${MONGO_ROOT_PASSWORD}@db:27017/?authSource=admin
+      HEALTHCARE_GIS_MONGO_DB: dog_gis
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:?Set ML_SERVICE_KEY}
+      ML_SERVICE_URL: http://ml:8001
+      CORS_ORIGINS: http://localhost:4200
+    depends_on: [db, ml]
+    restart: on-failure
+  web:
+    build: {context: .., dockerfile: deployment/Dockerfile.web}
+    ports: ["127.0.0.1:4200:80"]
+    depends_on: [api]
+volumes:
+  mongo_data:
+  models:
