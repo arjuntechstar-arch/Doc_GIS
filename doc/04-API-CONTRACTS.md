@@ -5,6 +5,7 @@ Base URL:
 
 ## Authentication
 POST `/auth/login`
+POST `/auth/register` — public signup; accepts `username`, `email`, and a 12+ character `password`. New accounts are always active `Viewer` users and must sign in afterward.
 POST `/auth/refresh`
 GET `/auth/me`
 

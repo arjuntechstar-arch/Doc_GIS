@@ -32,6 +32,11 @@ class NewUser(Login):
     email: str = Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     role: str = "Viewer"
 
+class Registration(Login):
+    """Public account creation payload; public users always start as Viewers."""
+    password: str = Field(min_length=12, max_length=256)
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
 class UserUpdate(BaseModel):
     role: str
     is_active: bool = True
@@ -93,11 +98,11 @@ def create_app(database=None):
             return problem(413, "Maximum request size is 10 MB")
         # Process-local limiter; reverse proxy must apply a shared limit when scaling workers.
         ip = request.client.host if request.client else "unknown"
-        bucket_key = (ip, "login" if request.url.path.endswith("/login") else "api")
+        bucket_key = (ip, "auth" if request.url.path.endswith(("/login", "/register")) else "api")
         with lock:
             bucket = limiter[bucket_key]
             while bucket and bucket[0] < started - 60: bucket.popleft()
-            if len(bucket) >= (20 if bucket_key[1] == "login" else 300):
+            if len(bucket) >= (20 if bucket_key[1] == "auth" else 300):
                 return problem(429, "Too many requests; retry in one minute")
             bucket.append(started)
         response = await call_next(request)
@@ -119,6 +124,21 @@ def create_app(database=None):
             raise HTTPException(401, "Invalid username or password")
         audit(db, user, "login", "users", user["_id"])
         return tokens(db, user)
+
+    @app.post("/api/v1/auth/register", status_code=201)
+    def register(body: Registration, request: Request):
+        """Create a self-service account with the least-privileged role."""
+        db = request.app.state.db
+        data = body.model_dump(exclude={"password"}) | {
+            "password_hash": passwords.hash(body.password),
+            "role": "Viewer",
+            "is_active": True,
+            "created_at": now(),
+            "updated_at": now(),
+        }
+        data["_id"] = db.users.insert_one(data).inserted_id
+        audit(db, data, "register", "users", data["_id"])
+        return clean(data)
 
     @app.post("/api/v1/auth/refresh")
     def refresh(body: Refresh, request: Request):

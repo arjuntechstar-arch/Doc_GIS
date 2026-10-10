@@ -10,7 +10,7 @@ import { GisMap } from './map';
 export class App {
   api=inject(Api);page=signal('Dashboard');busy=signal(false);error=signal('');notice=signal('');dashboard=signal<any>(null);items=signal<any[]>([]);history=signal<any[]>([]);models=signal<any[]>([]);scenarios=signal<any[]>([]);current=signal<any>(null);users=signal<any[]>([]);
   pages=['Dashboard','GIS Explorer','Hospitals','Population','Accessibility','Demand Prediction','Candidate Sites','Optimization','Recommendations','Reports','Administration'];
-  username='';password='';importKind='hospitals';modelVersion='';predictionYear=2027;selectedRun='';hospitalId='';total=signal(0);listPage=1;search='';
+  username='';password='';authMode=signal<'signin'|'register'>('signin');authNotice=signal('');registration={username:'',email:'',password:'',confirmPassword:''};importKind='hospitals';modelVersion='';predictionYear=2027;selectedRun='';hospitalId='';total=signal(0);listPage=1;search='';
   hospital={name:'',hospital_type:'General',bed_capacity:100,emergency_available:true,specialty_count:5,status:'Active',longitude:80.27,latitude:13.08};
   analysis={analysisName:'Healthcare accessibility baseline',travelMode:'road',areaIds:[] as string[],weights:{distance:.3,travelTime:.3,capacity:.2,emergency:.2},travelTimeThreshold:30};
   candidate={minPopulation:5000,minDemand:1000,minRoadAccessScore:.5,minDistanceFromExistingHospitalKm:3,gridSpacingKm:1.5,excludedLandUse:['water','protected_forest']};
@@ -21,6 +21,19 @@ export class App {
   keys=Object.keys;
   async act(fn:()=>Promise<void>){this.error.set('');this.busy.set(true);try{await fn();}catch(e:any){this.error.set(e.message);}finally{this.busy.set(false);}}
   async login(){await this.act(async()=>{await this.api.login(this.username,this.password);this.password='';await this.refresh();});}
+  showAuth(mode:'signin'|'register'){this.authMode.set(mode);this.error.set('');this.authNotice.set('');}
+  async register(){
+    if(this.registration.password!==this.registration.confirmPassword){this.error.set('Passwords do not match.');return;}
+    await this.act(async()=>{
+      const {username,email,password}=this.registration;
+      await this.api.register(username,email,password);
+      this.username=username;
+      this.password='';
+      this.registration={username:'',email:'',password:'',confirmPassword:''};
+      this.authMode.set('signin');
+      this.authNotice.set('Account created. Sign in with your new username to continue.');
+    });
+  }
   logout(){this.api.logout();this.dashboard.set(null);this.current.set(null);}
   async refresh(){this.dashboard.set(await this.api.request('/dashboard'));this.history.set((await this.api.request('/analysis/history')).items);}
   async select(page:string){this.page.set(page);this.items.set([]);this.listPage=1;await this.act(async()=>{await this.refresh();if(['Hospitals','Population'].includes(page))await this.loadItems();if(page==='Demand Prediction'){this.models.set((await this.api.request('/demand/models')).items);this.modelVersion=this.models()[0]?.model_version||'';const id=this.runs().demand;if(id)this.items.set((await this.api.request('/demand/predictions?runId='+id)).items);}if(page==='Candidate Sites')this.items.set((await this.api.request('/candidate-sites'+(this.runs().candidates?'?runId='+this.runs().candidates:''))).items);if(page==='Recommendations'&&this.runs().recommendations)this.items.set((await this.api.request('/optimization/runs/'+this.runs().recommendations+'/recommendations')).items);if(page==='Accessibility'&&this.runs().accessibility)this.items.set((await this.api.request('/accessibility/results?runId='+this.runs().accessibility)).items);if(page==='Reports')this.scenarios.set((await this.api.request('/reports/scenarios')).scenarios);if(page==='Administration'&&this.api.can())this.users.set((await this.api.request('/admin/users')).items);});}

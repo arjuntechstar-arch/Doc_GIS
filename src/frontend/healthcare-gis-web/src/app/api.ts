@@ -10,6 +10,9 @@ export class Api {
     this.access=pair.accessToken;this.refresh=pair.refreshToken;
     this.user.set(await this.request('/auth/me'));
   }
+  async register(username:string,email:string,password:string) {
+    return this.request('/auth/register','POST',{username,email,password});
+  }
   logout(){this.access='';this.refresh='';this.user.set(null);}
   can(...roles:string[]){return this.user()?.role==='Admin'||roles.includes(this.user()?.role);}
   async request(path:string,method='GET',body?:any,retry=true):Promise<any>{

@@ -55,4 +55,4 @@ def test_complete_workflow_scenarios_exports(api,ml_server):
     assert len(http.get('/api/v1/gis/recommendations?runId='+optimized['id']).json()['features'])==5
     assert http.get('/api/v1/dashboard').json()['population']>0
     output=Path('var/evaluation');output.mkdir(parents=True,exist_ok=True)
-    (output/'workflow.json').write_text(json.dumps({'dataset':'DEMO-CITY-v2','baseline':baseline['result'],'models':trained['result'],'scenarios':scenarios},indent=2))
+    (output/'workflow.json').write_text(json.dumps({'dataset':'DEMO-CITY-v3','baseline':baseline['result'],'models':trained['result'],'scenarios':scenarios},indent=2))

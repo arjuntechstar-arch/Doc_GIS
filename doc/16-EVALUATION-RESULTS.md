@@ -2,7 +2,7 @@
 
 The integration test `tests/backend/test_workflow.py` ran on MongoDB 8 with the separate FastAPI ML service. All values below come from `var/evaluation/workflow.json` generated on 2026-09-25. The data is **synthetic** and does not describe actual health conditions.
 
-The experiment generated 16 population areas, two hospitals, connected synthetic roads, and annual healthcare demand for 2012–2025. Training rows use preceding-period demand. Years were separated chronologically: 2013–2019 for training, 2020–2022 for validation, and 2023–2025 for a held-out test. Model selection used the lowest validation RMSE.
+This is the recorded evaluation of the earlier DEMO-CITY-v2 dataset. DEMO-CITY-v3 has more varied synthetic inputs; these v2 metrics and scenarios are not v3 evaluation results. Rerun `tests/backend/test_workflow.py` against a disposable MongoDB and ML service to generate v3 measurements. The experiment generated 16 population areas, two hospitals, connected synthetic roads, and annual healthcare demand for 2012–2025. Training rows use preceding-period demand. Years were separated chronologically: 2013–2019 for training, 2020–2022 for validation, and 2023–2025 for a held-out test. Model selection used the lowest validation RMSE.
 
 | Algorithm | Test MAE | Test RMSE | Test R² | Test MAPE |
 |---|---:|---:|---:|---:|
